@@ -1,8 +1,8 @@
-name: Build & Test
+name: Build & Test (Develop & PR Only)
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ develop ]
   pull_request:
     branches: [ main, develop ]
 
