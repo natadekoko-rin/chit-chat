@@ -7,10 +7,18 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build output
 dist
 dist-ssr
 *.local
+coverage
+.nyc_output
 
 # Editor directories and files
 .vscode/*
@@ -20,6 +28,8 @@ dist-ssr
 *.suo
 *.sln
 *.sw?
+*.sublime-workspace
+*.sublime-project
 
 # Environment variables
 .env
@@ -29,7 +39,34 @@ dist-ssr
 # Firebase
 .firebase/
 .firebaserc
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+firebase-debug.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+
+# OS specific
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+
+# IDE - VSCode
+.vscode-test
+.history/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
