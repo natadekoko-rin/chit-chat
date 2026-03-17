@@ -259,3 +259,40 @@ export function subscribeToUsers(callback: (users: User[]) => void): () => void 
     throw error
   }
 }
+
+// Clean database functions
+export async function cleanMessages(): Promise<void> {
+  try {
+    console.log('🗑️  Deleting all messages...')
+    const querySnapshot = await getDocs(collection(db, 'messages'))
+    let count = 0
+
+    for (const docRef of querySnapshot.docs) {
+      await deleteDoc(docRef.ref)
+      count++
+    }
+
+    console.log(`✅ Deleted ${count} messages`)
+  } catch (error) {
+    console.error('❌ Error deleting messages:', error)
+    throw error
+  }
+}
+
+export async function cleanUsers(): Promise<void> {
+  try {
+    console.log('🗑️  Deleting all users...')
+    const querySnapshot = await getDocs(collection(db, 'users'))
+    let count = 0
+
+    for (const docRef of querySnapshot.docs) {
+      await deleteDoc(docRef.ref)
+      count++
+    }
+
+    console.log(`✅ Deleted ${count} users`)
+  } catch (error) {
+    console.error('❌ Error deleting users:', error)
+    throw error
+  }
+}

@@ -149,7 +149,7 @@ import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useChatStore } from '@/stores/chatStore'
-import { sendMessage, getMessages, subscribeToMessages, subscribeToUsers } from '@/services/firebase'
+import { sendMessage, getMessages, subscribeToMessages, subscribeToUsers, getUserById } from '@/services/firebase'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -194,7 +194,12 @@ async function handleSendMessage() {
 
 function scrollToBottom() {
   if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+    // Use setTimeout to ensure DOM is fully rendered before scrolling
+    setTimeout(() => {
+      if (messagesContainer.value) {
+        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+      }
+    }, 0)
   }
 }
 
@@ -208,11 +213,27 @@ async function handleLogout() {
 // Load initial messages and subscribe to updates
 onMounted(async () => {
   try {
+    // Check if user still exists in database
+    if (authStore.user) {
+      const userExists = await getUserById(authStore.user.id)
+      if (!userExists) {
+        // User was deleted (database was cleaned), logout and redirect
+        console.log('User session invalid - database was cleaned. Logging out...')
+        authStore.logout()
+        chatStore.unsubscribeFromUpdates()
+        router.push('/create-account')
+        return
+      }
+    }
+
     // Load initial messages
     const initialMessages = await getMessages()
     chatStore.setMessages(initialMessages)
     
+    // Wait for DOM to update then scroll
     await nextTick()
+    // Add additional small delay to ensure layout is complete
+    await new Promise(resolve => setTimeout(resolve, 50))
     scrollToBottom()
 
     // Subscribe to real-time updates
@@ -312,6 +333,7 @@ watch(
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
+  scroll-padding-top: 80px;
 }
 
 .empty-state {
@@ -327,6 +349,10 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.message-wrapper:first-child {
+  margin-top: 5rem;
 }
 
 .message-wrapper {
@@ -352,6 +378,7 @@ watch(
   word-break: break-word;
   border-radius: 12px;
   transition: all 0.2s ease;
+  min-width: 120px;
 }
 
 .message-card:hover {

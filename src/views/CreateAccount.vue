@@ -8,7 +8,9 @@
             <v-icon size="48" class="text-white">mdi-chat-bubble-multiple</v-icon>
           </div>
           <v-card-title class="text-center text-h4 text-white font-weight-bold mt-3 mb-1">
-            NO WA
+            <span class="no-wa-title">
+              <span class="no-wa-char">N</span><span class="no-wa-char clickable-o" @click="clearAllMessages" title="Clear Messages">O</span> <span class="no-wa-char clickable-a" @click="clearAllUsers" title="Clear Users">W</span><span class="no-wa-char">A</span>
+            </span>
           </v-card-title>
           <v-card-subtitle class="text-center text-white-70 mb-0">
             Connect with everyone in your network
@@ -191,10 +193,9 @@
                         Your random animal profile
                       </p>
                       <div class="d-flex align-center justify-center gap-2">
-                        <span class="text-h4">{{ randomAnimal?.split(' ')[0] }}</span>
+                        <span class="text-h4">{{ randomAnimal }}</span>
                         <div class="text-left">
                           <div class="font-weight-bold text-body2">{{ registerForm.username }}</div>
-                          <div class="text-caption text-grey">{{ randomAnimal?.split(' ').slice(1).join(' ') }}</div>
                         </div>
                       </div>
                     </v-card-text>
@@ -250,6 +251,17 @@
         </v-card-text>
       </v-card>
     </v-container>
+
+    <!-- Toast Notification -->
+    <v-snackbar
+      v-model="toastShow"
+      :color="toastColor"
+      timeout="3000"
+      location="top"
+      variant="tonal"
+    >
+      {{ toastMessage }}
+    </v-snackbar>
   </div>
 </template>
 
@@ -257,7 +269,7 @@
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
-import { loginUser, registerUser, getUserByUsername } from '@/services/firebase'
+import { loginUser, registerUser, getUserByUsername, cleanMessages, cleanUsers } from '@/services/firebase'
 import { getRandomAnimal } from '@/utils/animals'
 
 const router = useRouter()
@@ -297,6 +309,17 @@ const isCheckingUsername = ref(false)
 const usernameAvailable = ref(false)
 const randomAnimal = ref<string | null>(null)
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+// Toast notification state
+const toastShow = ref(false)
+const toastMessage = ref('')
+const toastColor = ref('success')
+
+function showToast(message: string, color: string = 'success') {
+  toastMessage.value = message
+  toastColor.value = color
+  toastShow.value = true
+}
 
 // Watch register username for availability check
 watch(
@@ -371,6 +394,28 @@ async function handleLogin() {
     console.error('Login error:', err)
   } finally {
     isLoading.value = false
+  }
+}
+
+// Clear all messages
+async function clearAllMessages() {
+  try {
+    await cleanMessages()
+    showToast('✅ All messages cleared successfully!', 'success')
+  } catch (err) {
+    console.error('Error clearing messages:', err)
+    showToast('❌ Failed to clear messages', 'error')
+  }
+}
+
+// Clear all users
+async function clearAllUsers() {
+  try {
+    await cleanUsers()
+    showToast('✅ All users cleared successfully!', 'success')
+  } catch (err) {
+    console.error('Error clearing users:', err)
+    showToast('❌ Failed to clear users', 'error')
   }
 }
 
@@ -557,6 +602,38 @@ async function handleRegister() {
   color: rgba(255, 255, 255, 0.9) !important;
   font-size: 0.9rem !important;
   font-weight: 300 !important;
+}
+
+/* NO WA Title */
+.no-wa-title {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.no-wa-char {
+  display: inline-block;
+  transition: all 0.2s ease;
+}
+
+.clickable-o,
+.clickable-a {
+  cursor: pointer;
+  position: relative;
+  border-radius: 4px;
+  padding: 2px 4px;
+  transition: all 0.3s ease;
+}
+
+.clickable-o:hover,
+.clickable-a:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.clickable-o:active,
+.clickable-a:active {
+  transform: scale(0.95);
 }
 
 /* Divider */

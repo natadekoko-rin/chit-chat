@@ -81,7 +81,8 @@ const ANIMALS = [
 ]
 
 export function getRandomAnimal(): string {
-  return ANIMALS[Math.floor(Math.random() * ANIMALS.length)]
+  const animal = ANIMALS[Math.floor(Math.random() * ANIMALS.length)]
+  return getAnimalEmoji(animal)
 }
 
 export function getAnimalEmoji(animal: string): string {

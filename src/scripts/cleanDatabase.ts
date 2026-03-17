@@ -5,6 +5,7 @@ import {
   getDocs,
   deleteDoc,
   doc,
+  setDoc,
 } from 'firebase/firestore'
 
 // Firebase configuration
@@ -39,6 +40,21 @@ async function cleanUsers(): Promise<void> {
   }
 }
 
+async function clearAllSessions(): Promise<void> {
+  try {
+    console.log('🔐 Clearing all active user sessions...')
+    // Set maintenance flag to trigger logout on all connected clients
+    await setDoc(doc(db, 'system', 'maintenance'), {
+      lastCleanup: new Date().toISOString(),
+      maintenanceMode: true,
+    })
+    console.log('✅ Session invalidation flag set - all users will be logged out on next refresh')
+  } catch (error) {
+    console.error('❌ Error clearing sessions:', error)
+    throw error
+  }
+}
+
 async function cleanMessages(): Promise<void> {
   try {
     console.log('🗑️  Deleting all messages...')
@@ -62,6 +78,7 @@ async function cleanAll(): Promise<void> {
     console.log('🧹 Cleaning entire database...\n')
     await cleanUsers()
     await cleanMessages()
+    await clearAllSessions()
     console.log('\n✨ Database cleaned successfully!')
   } catch (error) {
     console.error('❌ Error cleaning database:', error)
