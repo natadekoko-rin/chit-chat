@@ -17,95 +17,236 @@
 
         <v-divider></v-divider>
 
-        <v-card-text class="pa-6">
-          <v-form @submit.prevent="handleLogin">
-            <!-- Username Field -->
-            <v-text-field
-              v-model="username"
-              label="Username"
-              prepend-inner-icon="mdi-account-circle"
-              variant="outlined"
-              density="comfortable"
-              class="mb-4"
-              :disabled="isLoading"
-              :error="!!usernameError"
-              :error-messages="usernameError"
-              @input="usernameError = ''"
-              @keyup.enter="handleLogin"
-              placeholder="Enter your username"
-            />
+        <!-- Tabs for Login / Register -->
+        <v-tabs v-model="currentTab" class="px-6 pt-4" color="primary">
+          <v-tab value="login" prepend-icon="mdi-login">Login</v-tab>
+          <v-tab value="register" prepend-icon="mdi-account-plus">Register</v-tab>
+        </v-tabs>
 
-            <!-- Animal Preview Card -->
-            <v-expand-transition>
-              <v-card 
-                v-if="username.length >= 3" 
-                class="mb-4 animal-preview-card"
-                elevation="2"
-              >
-                <v-card-text class="pa-4 text-center">
-                  <p class="text-caption text-grey mb-2">
-                    <v-icon size="x-small" class="mr-1">mdi-sparkles</v-icon>
-                    Your random animal profile
-                  </p>
-                  <div class="d-flex align-center justify-center gap-2">
-                    <span class="text-h4">{{ randomAnimal?.split(' ')[0] }}</span>
-                    <div class="text-left">
-                      <div class="font-weight-bold text-body2">{{ username }}</div>
-                      <div class="text-caption text-grey">{{ randomAnimal?.split(' ').slice(1).join(' ') }}</div>
-                    </div>
+        <v-card-text class="pa-6 pt-4">
+          <!-- LOGIN TAB -->
+          <v-window v-model="currentTab">
+            <v-window-item value="login">
+              <v-form @submit.prevent="handleLogin">
+                <p class="text-body2 text-grey mb-4">
+                  <v-icon size="x-small" class="mr-1">mdi-information</v-icon>
+                  Enter your username and password to login
+                </p>
+
+                <!-- Username Field -->
+                <v-text-field
+                  v-model="loginForm.username"
+                  label="Username"
+                  prepend-inner-icon="mdi-account-circle"
+                  variant="outlined"
+                  density="comfortable"
+                  class="mb-3"
+                  :disabled="isLoading"
+                  :error="!!loginErrors.username"
+                  :error-messages="loginErrors.username"
+                  @input="loginErrors.username = ''"
+                  placeholder="Enter your username"
+                />
+
+                <!-- Password Field -->
+                <v-text-field
+                  v-model="loginForm.password"
+                  label="Password"
+                  type="password"
+                  prepend-inner-icon="mdi-lock"
+                  variant="outlined"
+                  density="comfortable"
+                  class="mb-4"
+                  :disabled="isLoading"
+                  :error="!!loginErrors.password"
+                  :error-messages="loginErrors.password"
+                  @input="loginErrors.password = ''"
+                  @keyup.enter="handleLogin"
+                  placeholder="Enter your password"
+                />
+
+                <!-- Login Button -->
+                <v-btn
+                  type="submit"
+                  color="primary"
+                  block
+                  size="large"
+                  :loading="isLoading"
+                  class="login-btn font-weight-bold"
+                  append-icon="mdi-arrow-right"
+                >
+                  <span>Login</span>
+                </v-btn>
+
+                <!-- Error Alert -->
+                <v-expand-transition>
+                  <v-alert
+                    v-if="error && currentTab === 'login'"
+                    type="error"
+                    closable
+                    class="mt-6"
+                    icon="mdi-alert-circle"
+                    prominent
+                  >
+                    {{ error }}
+                  </v-alert>
+                </v-expand-transition>
+              </v-form>
+            </v-window-item>
+
+            <!-- REGISTER TAB -->
+            <v-window-item value="register">
+              <v-form @submit.prevent="handleRegister">
+                <p class="text-body2 text-grey mb-4">
+                  <v-icon size="x-small" class="mr-1">mdi-information</v-icon>
+                  Create a new account with username and password
+                </p>
+
+                <!-- Username Field -->
+                <v-text-field
+                  v-model="registerForm.username"
+                  label="Username"
+                  prepend-inner-icon="mdi-account-circle"
+                  variant="outlined"
+                  density="comfortable"
+                  class="mb-3"
+                  :disabled="isLoading"
+                  :error="!!registerErrors.username"
+                  :error-messages="registerErrors.username"
+                  @input="registerErrors.username = ''; debouncedCheckUsername()"
+                  placeholder="Enter your username (min 3 chars)"
+                />
+
+                <!-- Username availability indicator -->
+                <v-expand-transition>
+                  <div v-if="registerForm.username.length >= 3" class="mb-4">
+                    <v-chip v-if="isCheckingUsername" size="small" class="mr-2">
+                      <v-progress-circular size="16" width="2" indeterminate class="mr-2"></v-progress-circular>
+                      Checking availability...
+                    </v-chip>
+                    <v-chip 
+                      v-else-if="usernameAvailable" 
+                      size="small" 
+                      color="success" 
+                      text-color="white"
+                      prepend-icon="mdi-check-circle"
+                    >
+                      Username available
+                    </v-chip>
+                    <v-chip 
+                      v-else 
+                      size="small" 
+                      color="error" 
+                      text-color="white"
+                      prepend-icon="mdi-close-circle"
+                    >
+                      Username already taken
+                    </v-chip>
                   </div>
-                </v-card-text>
-              </v-card>
-            </v-expand-transition>
-            <p class="text-caption text-grey mb-6">
-              <v-icon size="x-small" class="mr-1">mdi-information</v-icon>
-              Minimum 3 characters. New users will be created automatically.
-            </p>
+                </v-expand-transition>
 
-            <!-- Login Button -->
-            <v-btn
-              type="submit"
-              color="primary"
-              block
-              size="large"
-              :loading="isLoading"
-              class="login-btn font-weight-bold"
-              append-icon="mdi-arrow-right"
-            >
-              <span>Enter Chat</span>
-            </v-btn>
+                <!-- Password Field -->
+                <v-text-field
+                  v-model="registerForm.password"
+                  label="Password"
+                  type="password"
+                  prepend-inner-icon="mdi-lock"
+                  variant="outlined"
+                  density="comfortable"
+                  class="mb-3"
+                  :disabled="isLoading"
+                  :error="!!registerErrors.password"
+                  :error-messages="registerErrors.password"
+                  @input="registerErrors.password = ''"
+                  placeholder="Min 3 characters"
+                />
 
-            <!-- Features List -->
-            <div class="features-list mt-6">
-              <div class="feature-item">
-                <v-icon size="small" color="primary">mdi-shield-check</v-icon>
-                <span class="text-caption">Secure & Real-time</span>
-              </div>
-              <div class="feature-item">
-                <v-icon size="small" color="primary">mdi-network</v-icon>
-                <span class="text-caption">Network Chat</span>
-              </div>
-              <div class="feature-item">
-                <v-icon size="small" color="primary">mdi-history</v-icon>
-                <span class="text-caption">Message History</span>
-              </div>
+                <!-- Confirm Password Field -->
+                <v-text-field
+                  v-model="registerForm.confirmPassword"
+                  label="Confirm Password"
+                  type="password"
+                  prepend-inner-icon="mdi-lock-check"
+                  variant="outlined"
+                  density="comfortable"
+                  class="mb-4"
+                  :disabled="isLoading"
+                  :error="!!registerErrors.confirmPassword"
+                  :error-messages="registerErrors.confirmPassword"
+                  @input="registerErrors.confirmPassword = ''"
+                  @keyup.enter="handleRegister"
+                  placeholder="Confirm your password"
+                />
+
+                <!-- Animal Preview Card -->
+                <v-expand-transition>
+                  <v-card 
+                    v-if="randomAnimal && registerForm.username.length >= 3" 
+                    class="mb-4 animal-preview-card"
+                    elevation="2"
+                  >
+                    <v-card-text class="pa-4 text-center">
+                      <p class="text-caption text-grey mb-2">
+                        <v-icon size="x-small" class="mr-1">mdi-sparkles</v-icon>
+                        Your random animal profile
+                      </p>
+                      <div class="d-flex align-center justify-center gap-2">
+                        <span class="text-h4">{{ randomAnimal?.split(' ')[0] }}</span>
+                        <div class="text-left">
+                          <div class="font-weight-bold text-body2">{{ registerForm.username }}</div>
+                          <div class="text-caption text-grey">{{ randomAnimal?.split(' ').slice(1).join(' ') }}</div>
+                        </div>
+                      </div>
+                    </v-card-text>
+                  </v-card>
+                </v-expand-transition>
+
+                <!-- Register Button -->
+                <v-btn
+                  type="submit"
+                  color="success"
+                  block
+                  size="large"
+                  :loading="isLoading"
+                  :disabled="!usernameAvailable || isCheckingUsername"
+                  class="login-btn font-weight-bold"
+                  append-icon="mdi-account-plus"
+                >
+                  <span>Create Account</span>
+                </v-btn>
+
+                <!-- Error Alert -->
+                <v-expand-transition>
+                  <v-alert
+                    v-if="error && currentTab === 'register'"
+                    type="error"
+                    closable
+                    class="mt-6"
+                    icon="mdi-alert-circle"
+                    prominent
+                  >
+                    {{ error }}
+                  </v-alert>
+                </v-expand-transition>
+              </v-form>
+            </v-window-item>
+          </v-window>
+
+          <!-- Features List -->
+          <div class="features-list mt-6">
+            <div class="feature-item">
+              <v-icon size="small" color="primary">mdi-shield-check</v-icon>
+              <span class="text-caption">Secure & Real-time</span>
             </div>
-
-            <!-- Error Alert -->
-            <v-expand-transition>
-              <v-alert
-                v-if="error"
-                type="error"
-                closable
-                class="mt-6 alert-error"
-                @click:close="error = ''"
-                icon="mdi-alert-circle"
-                prominent
-              >
-                {{ error }}
-              </v-alert>
-            </v-expand-transition>
-          </v-form>
+            <div class="feature-item">
+              <v-icon size="small" color="primary">mdi-network</v-icon>
+              <span class="text-caption">Network Chat</span>
+            </div>
+            <div class="feature-item">
+              <v-icon size="small" color="primary">mdi-history</v-icon>
+              <span class="text-caption">Message History</span>
+            </div>
+          </div>
         </v-card-text>
       </v-card>
     </v-container>
@@ -116,64 +257,179 @@
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
-import { getUserByUsername, createUser, updateUserUuid } from '@/services/firebase'
+import { loginUser, registerUser, getUserByUsername } from '@/services/firebase'
 import { getRandomAnimal } from '@/utils/animals'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
-const username = ref('')
-const randomAnimal = ref<string | null>(null)
-const isLoading = ref(false)
-const error = ref<string | null>(null)
-const usernameError = ref<string | null>(null)
+// Tab control
+const currentTab = ref<'login' | 'register'>('login')
 
-// Generate a random animal preview when username has valid length
-watch(username, (newUsername) => {
-  if (newUsername.length >= 3) {
-    randomAnimal.value = getRandomAnimal()
-  } else {
-    randomAnimal.value = null
-  }
+// Login form state
+const loginForm = ref({
+  username: '',
+  password: '',
 })
 
+const loginErrors = ref({
+  username: '',
+  password: '',
+})
+
+// Register form state
+const registerForm = ref({
+  username: '',
+  password: '',
+  confirmPassword: '',
+})
+
+const registerErrors = ref({
+  username: '',
+  password: '',
+  confirmPassword: '',
+})
+
+// Shared state
+const isLoading = ref(false)
+const error = ref<string | null>(null)
+const isCheckingUsername = ref(false)
+const usernameAvailable = ref(false)
+const randomAnimal = ref<string | null>(null)
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+// Watch register username for availability check
+watch(
+  () => registerForm.value.username,
+  (newUsername) => {
+    if (newUsername.length >= 3) {
+      debouncedCheckUsername()
+    } else {
+      usernameAvailable.value = false
+      randomAnimal.value = null
+    }
+  }
+)
+
+// Debounced username availability check
+function debouncedCheckUsername() {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+  }
+
+  isCheckingUsername.value = true
+  debounceTimer = setTimeout(async () => {
+    try {
+      const user = await getUserByUsername(registerForm.value.username.trim())
+      usernameAvailable.value = !user // Available if user doesn't exist
+      
+      if (usernameAvailable.value && registerForm.value.username.length >= 3) {
+        randomAnimal.value = getRandomAnimal()
+      } else {
+        randomAnimal.value = null
+      }
+    } catch (err) {
+      console.error('Error checking username:', err)
+      usernameAvailable.value = false
+      randomAnimal.value = null
+    } finally {
+      isCheckingUsername.value = false
+    }
+  }, 500)
+}
+
+// LOGIN handler
 async function handleLogin() {
+  error.value = null
+  loginErrors.value = { username: '', password: '' }
+
   // Validation
-  if (!username.value.trim()) {
-    usernameError.value = 'Username is required'
+  if (!loginForm.value.username.trim()) {
+    loginErrors.value.username = 'Username is required'
     return
   }
 
-  if (username.value.trim().length < 3) {
-    usernameError.value = 'Username must be at least 3 characters'
+  if (!loginForm.value.password) {
+    loginErrors.value.password = 'Password is required'
     return
   }
 
   isLoading.value = true
-  error.value = null
 
   try {
-    const trimmedUsername = username.value.trim()
+    const user = await loginUser(loginForm.value.username, loginForm.value.password)
     
-    // Check if username exists
-    let user = await getUserByUsername(trimmedUsername)
-    
-    if (user) {
-      // User exists - update UUID for new session
-      user = await updateUserUuid(user.id, trimmedUsername)
-    } else {
-      // User doesn't exist - create new user with selected animal
-      user = await createUser(trimmedUsername, randomAnimal.value || undefined)
-    }
+    // Set user and save session
+    authStore.setUser(user)
+    console.log(`✅ Login successful: ${user.username}`)
+
+    // Redirect to chat
+    router.push('/chat')
+  } catch (err: any) {
+    const errorMessage = err?.message || 'Login failed'
+    error.value = errorMessage
+    console.error('Login error:', err)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// REGISTER handler
+async function handleRegister() {
+  error.value = null
+  registerErrors.value = { username: '', password: '', confirmPassword: '' }
+
+  // Validation
+  if (!registerForm.value.username.trim()) {
+    registerErrors.value.username = 'Username is required'
+    return
+  }
+
+  if (registerForm.value.username.trim().length < 3) {
+    registerErrors.value.username = 'Username must be at least 3 characters'
+    return
+  }
+
+  if (!usernameAvailable.value) {
+    registerErrors.value.username = 'Username is already taken'
+    return
+  }
+
+  if (!registerForm.value.password) {
+    registerErrors.value.password = 'Password is required'
+    return
+  }
+
+  if (registerForm.value.password.length < 3) {
+    registerErrors.value.password = 'Password must be at least 3 characters'
+    return
+  }
+
+  if (registerForm.value.password !== registerForm.value.confirmPassword) {
+    registerErrors.value.confirmPassword = 'Passwords do not match'
+    return
+  }
+
+  isLoading.value = true
+
+  try {
+    const user = await registerUser(
+      registerForm.value.username,
+      registerForm.value.password,
+      randomAnimal.value || undefined
+    )
+
+    console.log(`✨ Account created: ${user.username}`)
 
     // Set user and save session
     authStore.setUser(user)
 
     // Redirect to chat
     router.push('/chat')
-  } catch (err) {
-    error.value = `Failed to login: ${err instanceof Error ? err.message : 'Unknown error'}`
-    console.error('Error logging in:', err)
+  } catch (err: any) {
+    const errorMessage = err?.message || 'Registration failed'
+    error.value = errorMessage
+    console.error('Registration error:', err)
   } finally {
     isLoading.value = false
   }

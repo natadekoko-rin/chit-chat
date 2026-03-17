@@ -7,11 +7,9 @@ import {
   where,
   getDocs,
   onSnapshot,
-  serverTimestamp,
   orderBy,
   limit,
   deleteDoc,
-  doc,
 } from 'firebase/firestore'
 import type { User, Message } from '@/types'
 import { v4 as uuidv4 } from 'uuid'
@@ -32,11 +30,30 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app)
 
 // Users Collection Functions
-export async function createUser(username: string, selectedAnimal?: string): Promise<User> {
+// Users Collection Functions - REGISTRATION
+export async function registerUser(
+  username: string,
+  password: string,
+  selectedAnimal?: string
+): Promise<User> {
+  const trimmedUsername = username.trim()
+  
+  // Check if username already exists
+  const existingUser = await getUserByUsername(trimmedUsername)
+  if (existingUser) {
+    throw new Error(`Username "${trimmedUsername}" already exists. Please choose a different username.`)
+  }
+
+  // Validate password
+  if (!password || password.length < 3) {
+    throw new Error('Password must be at least 3 characters')
+  }
+
   const userId = uuidv4()
   const newUser: User = {
     id: userId,
-    username,
+    username: trimmedUsername,
+    password, // In production, this should be hashed
     animal: selectedAnimal || getRandomAnimal(),
     createdAt: Date.now(),
   }
@@ -45,36 +62,50 @@ export async function createUser(username: string, selectedAnimal?: string): Pro
     await addDoc(collection(db, 'users'), newUser)
     return newUser
   } catch (error) {
-    console.error('Error creating user:', error)
+    console.error('Error registering user:', error)
     throw error
   }
 }
 
-export async function updateUserUuid(userId: string, username: string): Promise<User> {
+// LOGIN function
+export async function loginUser(username: string, password: string): Promise<User> {
+  const trimmedUsername = username.trim()
+
   try {
-    // Find the document with this userId
+    const user = await getUserByUsername(trimmedUsername)
+
+    if (!user) {
+      throw new Error(`Username "${trimmedUsername}" not found. Please register first.`)
+    }
+
+    // Verify password
+    if (user.password !== password) {
+      throw new Error('Password is incorrect. Please try again.')
+    }
+
+    return user
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error
+    }
+    console.error('Error logging in:', error)
+    throw new Error('Login failed. Please try again.')
+  }
+}
+
+export async function getUserById(userId: string): Promise<User | null> {
+  try {
     const q = query(collection(db, 'users'), where('id', '==', userId))
     const querySnapshot = await getDocs(q)
 
     if (querySnapshot.empty) {
-      // If not found by id, search by username
-      const q2 = query(collection(db, 'users'), where('username', '==', username))
-      const querySnapshot2 = await getDocs(q2)
-      
-      if (querySnapshot2.empty) {
-        throw new Error('User not found')
-      }
-      
-      const doc = querySnapshot2.docs[0]
-      const userData = doc.data() as User
-      return userData
+      return null
     }
 
     const doc = querySnapshot.docs[0]
-    const userData = doc.data() as User
-    return userData
+    return doc.data() as User
   } catch (error) {
-    console.error('Error updating user UUID:', error)
+    console.error('Error getting user by ID:', error)
     throw error
   }
 }
@@ -88,8 +119,14 @@ export async function getUserByUsername(username: string): Promise<User | null> 
       return null
     }
 
-    const doc = querySnapshot.docs[0]
-    return doc.data() as User
+    // If multiple users exist with same username (shouldn't happen), return the most recent one
+    const users = querySnapshot.docs.map((doc) => doc.data() as User)
+    if (users.length > 1) {
+      console.warn(`Multiple users found with username "${username}". Returning most recent.`)
+      return users.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0]
+    }
+
+    return users[0]
   } catch (error) {
     console.error('Error getting user:', error)
     throw error
@@ -106,6 +143,26 @@ export async function deleteUserByUsername(username: string): Promise<void> {
       return
     }
 
+    // If multiple users exist with same username, delete all but the most recent one
+    if (querySnapshot.docs.length > 1) {
+      const users = querySnapshot.docs.map((doc) => ({
+        ref: doc.ref,
+        data: doc.data() as User,
+      }))
+
+      // Sort by createdAt descending, keep the first one (most recent)
+      users.sort((a, b) => (b.data.createdAt || 0) - (a.data.createdAt || 0))
+
+      // Delete all but the most recent
+      for (let i = 1; i < users.length; i++) {
+        await deleteDoc(users[i].ref)
+        console.log(`Deleted duplicate user: ${username}`)
+      }
+
+      return
+    }
+
+    // Delete single user
     const docRef = querySnapshot.docs[0].ref
     await deleteDoc(docRef)
     console.log('User deleted:', username)

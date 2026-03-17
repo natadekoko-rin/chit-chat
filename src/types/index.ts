@@ -1,6 +1,7 @@
 export interface User {
   id: string
   username: string
+  password: string // Note: In production, this should be hashed
   animal: string
   createdAt: number
 }

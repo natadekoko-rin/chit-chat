@@ -82,10 +82,7 @@
                   <div class="d-flex justify-space-between align-start mb-2">
                     <div class="d-flex align-center gap-2">
                       <span class="text-h5" style="line-height: 1;">{{ message.animal }}</span>
-                      <div>
-                        <strong class="text-body2 d-block">{{ message.username }}</strong>
-                        <span class="text-caption text-grey">{{ message.animal?.split(' ').slice(1).join(' ') }}</span>
-                      </div>
+                      <strong class="text-body2 d-block">{{ message.username }}</strong>
                     </div>
                     <span class="text-caption text-grey time-stamp">
                       {{ formatTime(message.timestamp) }}
@@ -152,7 +149,7 @@ import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useChatStore } from '@/stores/chatStore'
-import { sendMessage, getMessages, subscribeToMessages, subscribeToUsers, deleteUserByUsername } from '@/services/firebase'
+import { sendMessage, getMessages, subscribeToMessages, subscribeToUsers } from '@/services/firebase'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -202,15 +199,7 @@ function scrollToBottom() {
 }
 
 async function handleLogout() {
-  try {
-    // Delete user from Firebase when logging out
-    if (authStore.user?.username) {
-      await deleteUserByUsername(authStore.user.username)
-    }
-  } catch (err) {
-    console.error('Error deleting user on logout:', err)
-  }
-
+  // Clear local session only (user data remains in Firebase)
   authStore.logout()
   chatStore.unsubscribeFromUpdates()
   router.push('/create-account')
