@@ -32,6 +32,7 @@ jobs:
         run: npm run build
 
       - name: Deploy to Firebase Hosting
+        id: deploy
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
@@ -44,11 +45,9 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const status = context.payload.workflow_run?.conclusion === 'success' ? 'success' : 'failure'
+            const status = '${{ job.status }}' === 'success' ? 'success' : 'failure'
             console.log(`Deployment ${status}`)
-            if ('${{ steps.deploy.outputs.urls }}') {
-              console.log('Preview URLs: ${{ steps.deploy.outputs.urls }}')
-            }
+            console.log('Preview URL: https://chitchut-2b9e2.web.app')
 
       - name: Comment on PR (if from PR)
         if: github.event_name == 'pull_request'
