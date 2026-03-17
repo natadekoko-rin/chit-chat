@@ -15,6 +15,7 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = {
         id: session.userId,
         username: session.username,
+        password: '', // Empty during session load, not stored in localStorage for security
         animal: session.animal,
         createdAt: Date.now(),
       }
