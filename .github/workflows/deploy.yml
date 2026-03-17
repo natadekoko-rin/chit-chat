@@ -40,14 +40,22 @@ jobs:
           channelId: live
           projectId: chitchut-2b9e2
 
+      - name: Display Live URL
+        run: |
+          echo "✅ Deployment Successful!"
+          echo "🌐 Live URL: https://chitchut-2b9e2.web.app"
+          echo "📊 Alternative: https://chitchut-2b9e2.firebaseapp.com"
+          echo "Deployment Output:"
+          echo "${{ steps.deploy.outputs.urls }}"
+
       - name: Create deployment status
         if: always()
         uses: actions/github-script@v7
         with:
           script: |
             const status = '${{ job.status }}' === 'success' ? 'success' : 'failure'
-            console.log(`Deployment ${status}`)
-            console.log('Preview URL: https://chitchut-2b9e2.web.app')
+            console.log(`✅ Deployment ${status}`)
+            console.log('🌐 Live URL: https://chitchut-2b9e2.web.app')
 
       - name: Comment on PR (if from PR)
         if: github.event_name == 'pull_request'
