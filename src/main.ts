@@ -8,7 +8,7 @@ import * as directives from 'vuetify/directives'
 import '@mdi/font/css/materialdesignicons.css'
 
 // Vuetify styles (REQUIRED)
-import 'vuetify/styles'
+// import 'vuetify/styles'
 
 import App from './App.vue'
 import router from './router'
