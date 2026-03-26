@@ -11,7 +11,7 @@ import {
   limit,
   deleteDoc,
 } from 'firebase/firestore'
-import type { User, Message } from '@/types'
+import type { User, Message, ReplyTo } from '@/types'
 import { v4 as uuidv4 } from 'uuid'
 import { getRandomAnimal } from '@/utils/animals'
 
@@ -177,7 +177,8 @@ export async function sendMessage(
   userId: string,
   username: string,
   animal: string,
-  content: string
+  content: string,
+  replyTo?: ReplyTo
 ): Promise<Message> {
   const newMessage: Message = {
     id: uuidv4(),
@@ -186,6 +187,7 @@ export async function sendMessage(
     animal,
     content,
     timestamp: Date.now(),
+    ...(replyTo && { replyTo })
   }
 
   try {

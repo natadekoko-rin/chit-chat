@@ -6,6 +6,13 @@ export interface User {
   createdAt: number
 }
 
+export interface ReplyTo {
+  id: string
+  username: string
+  animal: string
+  content: string
+}
+
 export interface Message {
   id: string
   userId: string
@@ -13,6 +20,7 @@ export interface Message {
   animal?: string
   content: string
   timestamp: number
+  replyTo?: ReplyTo
 }
 
 export interface SessionData {

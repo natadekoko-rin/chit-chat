@@ -58,7 +58,7 @@
         </div>
 
         <transition-group name="message" tag="div" class="messages-list">
-          <div v-for="message in chatStore.messages" :key="message.id" class="message-wrapper">
+          <div v-for="message in chatStore.messages" :key="message.id" class="message-wrapper" :data-message-id="message.id">
             <div
               :class="[
                 'message-item',
@@ -68,8 +68,22 @@
               <v-card 
                 :class="['message-card', isCurrentUser(message.userId) ? 'message-sent' : 'message-received']"
                 elevation="1"
+                @mouseenter="hoveredMessageId = message.id"
+                @mouseleave="hoveredMessageId = null"
               >
                 <v-card-text class="pa-3">
+                  <!-- Quoted Message (Reply To) -->
+                  <div v-if="message.replyTo" class="quoted-message" @click="scrollToMessage(message.replyTo.id)">
+                    <div class="quoted-content">
+                      <span class="quoted-emoji">{{ message.replyTo.animal }}</span>
+                      <div class="quoted-text">
+                        <strong class="quoted-username">{{ message.replyTo.username }}</strong>
+                        <p class="quoted-msg">{{ message.replyTo.content }}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Sender Info -->
                   <div class="d-flex justify-space-between align-start mb-2">
                     <div class="d-flex align-center gap-2">
                       <span class="text-h5" style="line-height: 1;">{{ message.animal }}</span>
@@ -79,16 +93,30 @@
                       {{ formatTime(message.timestamp) }}
                     </span>
                   </div>
+
+                  <!-- Message Content -->
                   <p class="message-content mb-2">{{ message.content }}</p>
-                  <div class="d-flex justify-end">
-                    <v-icon
-                      size="small"
-                      class="copy-icon-btn"
+
+                  <!-- Actions -->
+                  <div class="d-flex justify-end gap-2 action-buttons">
+                    <v-btn
+                      icon
+                      size="x-small"
+                      class="action-btn"
+                      @click="setReply(message)"
+                      title="Reply"
+                    >
+                      <v-icon size="small">mdi-reply</v-icon>
+                    </v-btn>
+                    <v-btn
+                      icon
+                      size="x-small"
+                      class="action-btn"
                       @click="copyToClipboard(message.content)"
                       title="Copy message"
                     >
-                      mdi-content-copy
-                    </v-icon>
+                      <v-icon size="small">mdi-content-copy</v-icon>
+                    </v-btn>
                   </div>
                 </v-card-text>
               </v-card>
@@ -99,11 +127,35 @@
 
       <!-- Message Input -->
       <div class="input-section">
+        <!-- Quoted Message Display -->
+        <v-slide-y-reverse-transition>
+          <div v-if="replyingTo" class="quoted-reply-box">
+            <div class="quoted-reply-content">
+              <div class="quoted-reply-info">
+                <span class="quoted-reply-emoji">{{ replyingTo.animal }}</span>
+                <div class="quoted-reply-text">
+                  <strong>{{ replyingTo.username }}</strong>
+                  <p>{{ replyingTo.content }}</p>
+                </div>
+              </div>
+              <v-btn
+                icon
+                size="small"
+                variant="plain"
+                @click="cancelReply"
+                class="quoted-reply-close"
+              >
+                <v-icon size="small">mdi-close</v-icon>
+              </v-btn>
+            </div>
+          </div>
+        </v-slide-y-reverse-transition>
+
         <v-form @submit.prevent="handleSendMessage" class="w-100">
           <div class="input-wrapper">
             <v-text-field
               v-model="messageInput"
-              label="Type a message..."
+              :label="replyingTo ? 'Reply to message...' : 'Type a message...'"
               variant="outlined"
               density="compact"
               :disabled="isLoading"
@@ -161,6 +213,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useChatStore } from '@/stores/chatStore'
 import { sendMessage, getMessages, subscribeToMessages, subscribeToUsers, getUserById } from '@/services/firebase'
+import type { Message, ReplyTo } from '@/types'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -172,6 +225,8 @@ const error = ref<string | null>(null)
 const messagesContainer = ref<HTMLElement | null>(null)
 const showCopyToast = ref(false)
 const copyToastMessage = ref('Copied to clipboard!')
+const replyingTo = ref<ReplyTo | null>(null)
+const hoveredMessageId = ref<string | null>(null)
 
 function isCurrentUser(userId: string): boolean {
   return userId === authStore.user?.id
@@ -180,6 +235,37 @@ function isCurrentUser(userId: string): boolean {
 function formatTime(timestamp: number): string {
   const date = new Date(timestamp)
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+function setReply(message: Message) {
+  replyingTo.value = {
+    id: message.id,
+    username: message.username,
+    animal: message.animal || '',
+    content: message.content
+  }
+}
+
+function cancelReply() {
+  replyingTo.value = null
+}
+
+function scrollToMessage(messageId: string) {
+  if (!messagesContainer.value) return
+
+  const targetElement = document.querySelector(`[data-message-id="${messageId}"]`)
+  if (!targetElement) {
+    console.warn('Message not found:', messageId)
+    return
+  }
+
+  targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  
+  // Add highlight animation
+  targetElement.classList.add('message-highlighted')
+  setTimeout(() => {
+    targetElement.classList.remove('message-highlighted')
+  }, 2000)
 }
 
 function copyToClipboard(text: string) {
@@ -203,8 +289,15 @@ async function handleSendMessage() {
   error.value = null
 
   try {
-    await sendMessage(authStore.user.id, authStore.user.username, authStore.user.animal, messageInput.value.trim())
+    await sendMessage(
+      authStore.user.id, 
+      authStore.user.username, 
+      authStore.user.animal, 
+      messageInput.value.trim(),
+      replyingTo.value || undefined
+    )
     messageInput.value = ''
+    replyingTo.value = null
     
     // Scroll to bottom after new message
     await nextTick()
@@ -578,6 +671,164 @@ watch(
   transform: scale(0.95);
 }
 
+/* Quoted Message (Reply) */
+.quoted-message {
+  background: rgba(0, 0, 0, 0.05);
+  border-left: 3px solid #667eea;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quoted-message:hover {
+  background: rgba(0, 0, 0, 0.08);
+  border-left-color: #764ba2;
+}
+
+.message-sent .quoted-message {
+  background: rgba(255, 255, 255, 0.15);
+  border-left-color: rgba(255, 255, 255, 0.6);
+}
+
+.message-sent .quoted-message:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-left-color: rgba(255, 255, 255, 0.8);
+}
+
+.quoted-content {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.quoted-emoji {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.quoted-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.quoted-username {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.quoted-msg {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin: 0;
+  word-break: break-word;
+  white-space: pre-wrap;
+  max-height: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Quoted Reply Box in Input Section */
+.quoted-reply-box {
+  background: #fff;
+  border-left: 4px solid #667eea;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+}
+
+.quoted-reply-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  gap: 12px;
+}
+
+.quoted-reply-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.quoted-reply-emoji {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.quoted-reply-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.quoted-reply-text strong {
+  font-size: 0.85rem;
+  color: #667eea;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.quoted-reply-text p {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 0;
+  word-break: break-word;
+  white-space: normal;
+  max-height: 40px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.quoted-reply-close {
+  flex-shrink: 0;
+  color: #999 !important;
+}
+
+.quoted-reply-close:hover {
+  color: #667eea !important;
+}
+
+/* Action Buttons Always Visible */
+.action-buttons {
+  opacity: 1;
+  transition: opacity 0.2s ease;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.action-btn {
+  color: #667eea !important;
+  transition: all 0.2s ease;
+}
+
+.message-sent .action-btn {
+  color: white !important;
+  background-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.action-btn:hover {
+  transform: scale(1.15);
+}
+
+.message-sent .action-btn:hover {
+  color: white !important;
+  background-color: rgba(255, 255, 255, 0.35) !important;
+}
+
 /* Tablet Responsive (600px - 960px) */
 @media (max-width: 960px) {
   .chat-content {
@@ -614,6 +865,18 @@ watch(
   .send-btn {
     height: 44px !important;
     width: 44px !important;
+  }
+
+  .quoted-reply-box {
+    padding: 8px 10px;
+  }
+
+  .quoted-reply-text strong {
+    font-size: 0.8rem;
+  }
+
+  .quoted-reply-text p {
+    font-size: 0.75rem;
   }
 }
 
@@ -668,6 +931,26 @@ watch(
 
   .messages-container::-webkit-scrollbar {
     width: 4px;
+  }
+
+  .quoted-reply-box {
+    padding: 6px 8px;
+  }
+
+  .quoted-reply-info {
+    gap: 6px;
+  }
+
+  .quoted-reply-emoji {
+    font-size: 0.95rem;
+  }
+
+  .quoted-reply-text strong {
+    font-size: 0.75rem;
+  }
+
+  .quoted-reply-text p {
+    font-size: 0.7rem;
   }
 }
 
@@ -816,5 +1099,19 @@ watch(
 
 .w-100 {
   width: 100%;
+}
+
+/* Message Highlight Animation */
+.message-highlighted {
+  animation: messageHighlight 2s ease-in-out;
+}
+
+@keyframes messageHighlight {
+  0%, 100% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: rgba(102, 126, 234, 0.15);
+  }
 }
 </style>
