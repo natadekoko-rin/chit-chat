@@ -2,27 +2,27 @@
   <div class="chat-container">
     <!-- App Bar Header -->
     <v-app-bar class="gradient-header" elevation="4">
-      <v-container class="d-flex align-center justify-space-between">
-        <div class="d-flex align-center gap-3">
+      <v-container class="header-container">
+        <div class="header-left">
           <div class="logo-badge">
-            <v-icon size="x-large" class="text-white">mdi-chat-bubble-multiple</v-icon>
+            <v-icon size="large" class="text-white">mdi-chat-bubble-multiple</v-icon>
           </div>
-          <div>
-            <h1 class="text-white text-h5 font-weight-bold">NO WA</h1>
-            <div class="d-flex gap-3">
-              <p class="text-caption text-white mb-0">
+          <div class="header-info">
+            <h1 class="app-title">NO WA</h1>
+            <div class="header-stats">
+              <p class="stat-item">
                 <v-icon size="x-small" class="mr-1">mdi-message-multiple</v-icon>
-                {{ chatStore.messages.length }} messages
+                {{ chatStore.messages.length }}
               </p>
-              <p class="text-caption text-white mb-0">
+              <p class="stat-item">
                 <v-icon size="x-small" class="mr-1">mdi-account-multiple</v-icon>
-                {{ chatStore.users.length }} online
+                {{ chatStore.users.length }}
               </p>
             </div>
           </div>
         </div>
 
-        <div class="d-flex align-center gap-3">
+        <div class="header-right">
           <v-chip 
             class="user-chip"
             color="white" 
@@ -30,8 +30,8 @@
             size="large"
             prepend-icon="mdi-crown"
           >
-            <span class="mr-2">{{ authStore.user?.animal }}</span>
-            <span class="font-weight-bold">{{ authStore.user?.username }}</span>
+            <span class="animal-emoji">{{ authStore.user?.animal }}</span>
+            <span class="username-text">{{ authStore.user?.username }}</span>
           </v-chip>
           <v-btn 
             color="white"
@@ -39,20 +39,11 @@
             size="small"
             append-icon="mdi-logout"
             @click="handleLogout"
-            class="logout-btn-text"
+            class="logout-btn"
             title="Logout"
           >
             Logout
           </v-btn>
-          <v-btn 
-            icon="mdi-logout" 
-            variant="text"
-            color="white"
-            size="small" 
-            @click="handleLogout"
-            class="logout-btn"
-            title="Logout"
-          />
         </div>
       </v-container>
     </v-app-bar>
@@ -88,7 +79,17 @@
                       {{ formatTime(message.timestamp) }}
                     </span>
                   </div>
-                  <p class="message-content mb-0">{{ message.content }}</p>
+                  <p class="message-content mb-2">{{ message.content }}</p>
+                  <div class="d-flex justify-end">
+                    <v-icon
+                      size="small"
+                      class="copy-icon-btn"
+                      @click="copyToClipboard(message.content)"
+                      title="Copy message"
+                    >
+                      mdi-content-copy
+                    </v-icon>
+                  </div>
                 </v-card-text>
               </v-card>
             </div>
@@ -141,6 +142,16 @@
         </v-expand-transition>
       </div>
     </v-container>
+
+    <!-- Copy Toast Notification -->
+    <v-snackbar
+      v-model="showCopyToast"
+      :timeout="2000"
+      location="bottom"
+      variant="tonal"
+    >
+      {{ copyToastMessage }}
+    </v-snackbar>
   </div>
 </template>
 
@@ -159,6 +170,8 @@ const messageInput = ref('')
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 const messagesContainer = ref<HTMLElement | null>(null)
+const showCopyToast = ref(false)
+const copyToastMessage = ref('Copied to clipboard!')
 
 function isCurrentUser(userId: string): boolean {
   return userId === authStore.user?.id
@@ -167,6 +180,18 @@ function isCurrentUser(userId: string): boolean {
 function formatTime(timestamp: number): string {
   const date = new Date(timestamp)
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+function copyToClipboard(text: string) {
+  navigator.clipboard.writeText(text).then(() => {
+    copyToastMessage.value = '✅ Copied to clipboard!'
+    showCopyToast.value = true
+    console.log('✅ Message copied to clipboard')
+  }).catch(err => {
+    copyToastMessage.value = '❌ Failed to copy'
+    showCopyToast.value = true
+    console.error('Failed to copy:', err)
+  })
 }
 
 async function handleSendMessage() {
@@ -278,22 +303,76 @@ watch(
   flex-direction: column;
   height: 100vh;
   background: linear-gradient(135deg, #f5f7fa 0%, #f1f4f9 100%);
+  overflow: hidden;
 }
 
 .gradient-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  flex-shrink: 0;
+}
+
+.header-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0 !important;
+  gap: 1rem;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.header-info {
+  min-width: 0;
+}
+
+.app-title {
+  color: white !important;
+  font-weight: 700 !important;
+  font-size: 1.25rem !important;
+  margin: 0 !important;
+  letter-spacing: 0.5px;
+}
+
+.header-stats {
+  display: flex;
+  gap: 1rem;
+  margin-top: 4px;
+}
+
+.stat-item {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem !important;
+  margin: 0 !important;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .logo-badge {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 50px;
-  height: 50px;
+  width: 45px;
+  height: 45px;
   background: rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   backdrop-filter: blur(10px);
+  flex-shrink: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  white-space: nowrap;
 }
 
 .user-chip {
@@ -301,21 +380,86 @@ watch(
   letter-spacing: 0.5px;
 }
 
-.logout-btn:hover {
-  background-color: rgba(255, 255, 255, 0.15);
+.animal-emoji {
+  margin-right: 0.5rem;
 }
 
-.logout-btn-text {
+.username-text {
+  font-weight: bold;
+}
+
+.logout-btn {
   border-color: rgba(255, 255, 255, 0.8) !important;
   color: white !important;
   font-weight: 600 !important;
   transition: all 0.3s ease !important;
 }
 
-.logout-btn-text:hover {
+.logout-btn:hover {
   background-color: rgba(255, 255, 255, 0.1) !important;
   border-color: white !important;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Responsive Design */
+@media (max-width: 960px) {
+  .header-container {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .header-left {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .header-right {
+    flex: 0 1 auto;
+    gap: 0.5rem;
+  }
+
+  .app-title {
+    font-size: 1.1rem !important;
+  }
+
+  .header-stats {
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .header-container {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 8px 0 !important;
+  }
+
+  .header-left {
+    width: 100%;
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .app-title {
+    font-size: 1rem !important;
+  }
+
+  .logo-badge {
+    width: 40px;
+    height: 40px;
+  }
+
+  .user-chip {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .logout-btn {
+    font-size: 0.85rem !important;
+  }
 }
 
 .chat-content {
@@ -324,16 +468,20 @@ watch(
   flex-direction: column;
   padding: 0;
   overflow: hidden;
-  gap: 1.5rem;
+  gap: 0;
+  height: 100%;
+  min-height: 0;
 }
 
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  padding: 1.5rem;
+  overflow-x: hidden;
+  padding: 0;
   display: flex;
   flex-direction: column;
   scroll-padding-top: 80px;
+  min-height: 0;
 }
 
 .empty-state {
@@ -343,16 +491,20 @@ watch(
   justify-content: center;
   height: 100%;
   text-align: center;
+  padding: 2rem 1.5rem;
+  flex: 1;
 }
 
 .messages-list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  padding: 1.5rem;
+  flex: 1;
 }
 
 .message-wrapper:first-child {
-  margin-top: 5rem;
+  margin-top: 1rem;
 }
 
 .message-wrapper {
@@ -385,45 +537,23 @@ watch(
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.message-sent {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-bottom-right-radius: 4px;
-}
-
-.message-sent .message-content {
-  color: white;
-}
-
-.message-sent .time-stamp {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.message-sent :deep(.v-icon) {
-  color: #fff !important;
-}
-
-.message-received {
-  background-color: white;
-  border-bottom-left-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.message-content {
-  font-size: 0.95rem;
-  line-height: 1.4;
-}
-
 .input-section {
   padding: 1rem 1.5rem 1.5rem;
   background: white;
   border-top: 1px solid #e0e0e0;
+  border-radius: 20px 20px 0 0;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .input-wrapper {
   display: flex;
   gap: 0.75rem;
   align-items: flex-end;
+  width: 100%;
+  flex-shrink: 0;
 }
 
 .message-input {
@@ -447,6 +577,195 @@ watch(
 .send-btn:active:not(:disabled) {
   transform: scale(0.95);
 }
+
+/* Tablet Responsive (600px - 960px) */
+@media (max-width: 960px) {
+  .chat-content {
+    gap: 0;
+  }
+
+  .messages-container {
+    padding: 0;
+    min-height: 0;
+  }
+
+  .messages-list {
+    padding: 1.25rem;
+  }
+
+  .message-card {
+    max-width: 75%;
+  }
+
+  .message-wrapper:first-child {
+    margin-top: 1.5rem;
+  }
+
+  .input-section {
+    padding: 0.75rem 1.25rem 1.25rem;
+    gap: 0.75rem;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .input-wrapper {
+    gap: 0.5rem;
+  }
+
+  .send-btn {
+    height: 44px !important;
+    width: 44px !important;
+  }
+}
+
+/* Mobile Responsive (< 600px) */
+@media (max-width: 600px) {
+  .chat-content {
+    gap: 0;
+    padding: 0;
+  }
+
+  .messages-container {
+    padding: 0;
+    scroll-padding-top: 60px;
+    min-height: 0;
+  }
+
+  .messages-list {
+    padding: 1rem;
+  }
+
+  .message-card {
+    max-width: 85%;
+  }
+
+  .message-wrapper:first-child {
+    margin-top: 1rem;
+  }
+
+  .message-wrapper {
+    margin: 0.5rem 0;
+  }
+
+  .input-section {
+    padding: 0.5rem 1rem 1rem;
+    gap: 0.5rem;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .input-wrapper {
+    gap: 0.4rem;
+  }
+
+  .send-btn {
+    height: 40px !important;
+    width: 40px !important;
+    min-width: 40px;
+  }
+
+  .empty-state {
+    padding: 1rem;
+  }
+
+  .messages-container::-webkit-scrollbar {
+    width: 4px;
+  }
+}
+
+.message-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.message-sent {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.message-sent .message-content {
+  color: white;
+}
+
+.message-sent .time-stamp {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.message-sent :deep(.v-icon) {
+  color: #fff !important;
+}
+
+.message-sent .copy-icon {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.message-sent .copy-icon:hover {
+  color: rgba(255, 255, 255, 1);
+}
+
+.message-sent .copy-btn {
+  opacity: 0.7;
+}
+
+.message-sent .copy-btn:hover {
+  opacity: 1 !important;
+}
+
+.message-sent .copy-icon-btn {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.message-sent .copy-icon-btn:hover {
+  color: white !important;
+  opacity: 1 !important;
+}
+
+.message-received {
+  background-color: white;
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.message-content {
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.copy-icon {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: all 0.2s ease;
+  color: #999;
+}
+
+.copy-icon:hover {
+  opacity: 1;
+  color: #667eea;
+  transform: scale(1.2);
+}
+
+.copy-btn {
+  opacity: 0.7;
+  transition: all 0.2s ease;
+}
+
+.copy-btn:hover {
+  opacity: 1 !important;
+  transform: scale(1.15);
+}
+
+.copy-icon-btn {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: all 0.2s ease;
+  color: #667eea;
+}
+
+.copy-icon-btn:hover {
+  opacity: 1 !important;
+  color: #667eea !important;
+  transform: scale(1.2);
+}
+
+
 
 .alert-error {
   border-radius: 8px;

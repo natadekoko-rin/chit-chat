@@ -3,7 +3,11 @@ import { createPinia } from 'pinia'
 import { createVuetify } from 'vuetify'
 import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
-// @ts-ignore - Vuetify styles import
+
+// ✅ Import MDI FONT (WAJIB)
+import '@mdi/font/css/materialdesignicons.css'
+
+// Vuetify styles (REQUIRED)
 import 'vuetify/styles'
 
 import App from './App.vue'
@@ -11,10 +15,12 @@ import router from './router'
 
 const app = createApp(App)
 
-// Create Vuetify instance with MDI icons
 const vuetify = createVuetify({
   components,
   directives,
+  icons: {
+    defaultSet: 'mdi', // ✅ cukup ini saja
+  },
   theme: {
     defaultTheme: 'light',
     themes: {

@@ -13,6 +13,7 @@
     "clean:messages": "node src/scripts/cleanDatabase.js messages"
   },
   "dependencies": {
+    "@mdi/font": "^7.4.47",
     "@mdi/js": "^7.4.0",
     "firebase": "^10.14.1",
     "pinia": "^2.1.0",
