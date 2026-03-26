@@ -155,13 +155,13 @@
           <div class="input-wrapper">
             <v-text-field
               v-model="messageInput"
-              :label="replyingTo ? 'Reply to message...' : 'Type a message...'"
+              :placeholder="replyingTo ? 'Reply to message...' : 'Type a message...'"
               variant="outlined"
               density="compact"
               :disabled="isLoading"
               hide-details
               class="message-input"
-              prepend-inner-icon="mdi-message-outline"
+              prepend-icon="mdi-message-outline"
               @keyup.enter="handleSendMessage"
             />
             <v-btn

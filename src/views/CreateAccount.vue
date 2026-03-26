@@ -38,33 +38,31 @@
                 <!-- Username Field -->
                 <v-text-field
                   v-model="loginForm.username"
-                  label="Username"
-                  prepend-inner-icon="mdi-account-circle"
+                  prepend-icon="mdi-account-circle"
                   variant="outlined"
-                  density="comfortable"
+                  density="compact"
                   class="mb-3"
                   :disabled="isLoading"
                   :error="!!loginErrors.username"
                   :error-messages="loginErrors.username"
                   @input="loginErrors.username = ''"
-                  placeholder="Enter your username"
+                  placeholder="Username"
                 />
 
                 <!-- Password Field -->
                 <v-text-field
                   v-model="loginForm.password"
-                  label="Password"
                   type="password"
-                  prepend-inner-icon="mdi-lock"
+                  prepend-icon="mdi-lock"
                   variant="outlined"
-                  density="comfortable"
+                  density="compact"
                   class="mb-4"
                   :disabled="isLoading"
                   :error="!!loginErrors.password"
                   :error-messages="loginErrors.password"
                   @input="loginErrors.password = ''"
                   @keyup.enter="handleLogin"
-                  placeholder="Enter your password"
+                  placeholder="Password"
                 />
 
                 <!-- Login Button -->
@@ -107,16 +105,15 @@
                 <!-- Username Field -->
                 <v-text-field
                   v-model="registerForm.username"
-                  label="Username"
-                  prepend-inner-icon="mdi-account-circle"
+                  prepend-icon="mdi-account-circle"
                   variant="outlined"
-                  density="comfortable"
+                  density="compact"
                   class="mb-3"
                   :disabled="isLoading"
                   :error="!!registerErrors.username"
                   :error-messages="registerErrors.username"
                   @input="registerErrors.username = ''; debouncedCheckUsername()"
-                  placeholder="Enter your username (min 3 chars)"
+                  placeholder="Username (min 3 chars)"
                 />
 
                 <!-- Username availability indicator -->
@@ -150,34 +147,32 @@
                 <!-- Password Field -->
                 <v-text-field
                   v-model="registerForm.password"
-                  label="Password"
                   type="password"
-                  prepend-inner-icon="mdi-lock"
+                  prepend-icon="mdi-lock"
                   variant="outlined"
-                  density="comfortable"
+                  density="compact"
                   class="mb-3"
                   :disabled="isLoading"
                   :error="!!registerErrors.password"
                   :error-messages="registerErrors.password"
                   @input="registerErrors.password = ''"
-                  placeholder="Min 3 characters"
+                  placeholder="Password (min 3 chars)"
                 />
 
                 <!-- Confirm Password Field -->
                 <v-text-field
                   v-model="registerForm.confirmPassword"
-                  label="Confirm Password"
                   type="password"
-                  prepend-inner-icon="mdi-lock-check"
+                  prepend-icon="mdi-lock-check"
                   variant="outlined"
-                  density="comfortable"
+                  density="compact"
                   class="mb-4"
                   :disabled="isLoading"
                   :error="!!registerErrors.confirmPassword"
                   :error-messages="registerErrors.confirmPassword"
                   @input="registerErrors.confirmPassword = ''"
                   @keyup.enter="handleRegister"
-                  placeholder="Confirm your password"
+                  placeholder="Confirm Password"
                 />
 
                 <!-- Animal Preview Card -->
